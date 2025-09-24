@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
-import { View, ScrollView, Pressable } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, ScrollView, Pressable, Animated } from 'react-native';
+import { router } from 'expo-router';
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { PostCard, Post } from '@/components/ui/post';
 import { PostDetail } from '@/components/ui/post-detail';
 import { Sidebar } from '@/components/ui/sidebar';
-import { MenuIcon } from 'lucide-react-native';
+import { FullScreenSearch } from '@/components/ui/full-screen-search';
+import { MenuIcon, SearchIcon } from 'lucide-react-native';
 
 const mockPosts: Post[] = [
   {
@@ -145,6 +147,8 @@ export default function HomeScreen() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [posts, setPosts] = useState<Post[]>(mockPosts);
+  const [showSearch, setShowSearch] = useState(false);
+
 
   const handlePostPress = (post: Post) => {
     setSelectedPost(post);
@@ -179,19 +183,34 @@ export default function HomeScreen() {
     console.log('Adding comment:', { postId, content });
   };
 
+  const handleUserPress = (username: string) => {
+    console.log('Navigating to user profile:', `/(tabs)/user/${username}`);
+    router.push(`/(tabs)/user/${username}`);
+  };
+
   return (
     <View className="flex-1 bg-background">
       {/* Header */}
       <View className="flex-row items-center justify-between p-4 border-b border-border">
-        <Text className="text-lg font-semibold">r/civicissues</Text>
-        <Button
-          size="sm"
-          variant="ghost"
-          onPress={() => setSidebarOpen(true)}
-          className="h-8 w-8 p-0"
-        >
-          <Icon as={MenuIcon} size={20} />
-        </Button>
+        <Text className="text-lg font-semibold">r/home</Text>
+        <View className="flex-row items-center gap-2">
+          <Button
+            size="sm"
+            variant="ghost"
+            onPress={() => setShowSearch(true)}
+            className="h-8 w-8 p-0"
+          >
+            <Icon as={SearchIcon} size={20} />
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onPress={() => setSidebarOpen(true)}
+            className="h-8 w-8 p-0"
+          >
+            <Icon as={MenuIcon} size={20} />
+          </Button>
+        </View>
       </View>
 
       {/* Posts Feed */}
@@ -207,6 +226,13 @@ export default function HomeScreen() {
           />
         ))}
       </ScrollView>
+
+      {/* Full Screen Search */}
+      <FullScreenSearch
+        isVisible={showSearch}
+        onClose={() => setShowSearch(false)}
+        onUserPress={handleUserPress}
+      />
 
       {/* Sidebar */}
       <Sidebar

@@ -1,5 +1,6 @@
-import React from 'react';
-import { View, Pressable } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Pressable, Animated, Dimensions } from 'react-native';
+import { router } from 'expo-router';
 import { Text } from './text';
 import { Button } from './button';
 import { Icon } from './icon';
@@ -13,7 +14,8 @@ import {
   SunIcon,
   HomeIcon,
   PlusIcon,
-  BellIcon
+  BellIcon,
+  ExternalLinkIcon
 } from 'lucide-react-native';
 import { useAuth } from '@/lib/auth';
 import { useColorScheme } from 'nativewind';
@@ -28,6 +30,50 @@ interface SidebarProps {
 export function Sidebar({ isOpen, onClose, activeTab, onTabPress }: SidebarProps) {
   const { user, logout } = useAuth();
   const { colorScheme, toggleColorScheme } = useColorScheme();
+  
+  const slideAnim = useRef(new Animated.Value(0)).current;
+  const overlayOpacity = useRef(new Animated.Value(0)).current;
+  const screenWidth = Dimensions.get('window').width;
+
+  const handleProfilePress = () => {
+    if (user?.username) {
+      router.push(`/(tabs)/user/${user.username}`);
+      onClose();
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      // Animate in with spring for natural feel
+      Animated.parallel([
+        Animated.spring(slideAnim, {
+          toValue: 1,
+          tension: 100,
+          friction: 8,
+          useNativeDriver: true,
+        }),
+        Animated.timing(overlayOpacity, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      // Animate out
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(overlayOpacity, {
+          toValue: 0,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -37,18 +83,36 @@ export function Sidebar({ isOpen, onClose, activeTab, onTabPress }: SidebarProps
     { id: 'notifications', label: 'Notifications', icon: BellIcon },
   ];
 
+  const sidebarTranslateX = slideAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [320, 0], // 320px is the sidebar width
+  });
+
   return (
     <View className="absolute inset-0 z-50 flex-row">
-      {/* Overlay */}
-      <Pressable 
+      {/* Animated Overlay */}
+      <Animated.View 
         className="flex-1 bg-black/50" 
-        onPress={onClose}
-      />
+        style={{ opacity: overlayOpacity }}
+      >
+        <Pressable 
+          className="flex-1" 
+          onPress={onClose}
+        />
+      </Animated.View>
       
-      {/* Sidebar */}
-      <View className="w-80 bg-background border-l border-border ml-auto">
+      {/* Animated Sidebar */}
+      <Animated.View 
+        className="w-80 bg-background border-l border-border"
+        style={{
+          transform: [{ translateX: sidebarTranslateX }],
+        }}
+      >
         <View className="p-4 border-b border-border">
-          <View className="flex-row items-center gap-3 mb-4">
+          <Pressable 
+            onPress={handleProfilePress}
+            className="flex-row items-center gap-3 mb-4 p-2 rounded-lg active:bg-muted"
+          >
             <Avatar className="w-12 h-12">
               <Text className="text-lg font-bold">
                 {(user?.get_full_name || user?.username || 'U').charAt(0).toUpperCase()}
@@ -62,6 +126,19 @@ export function Sidebar({ isOpen, onClose, activeTab, onTabPress }: SidebarProps
                 @{user?.username || 'username'}
               </Text>
             </View>
+            <Icon as={ExternalLinkIcon} size={16} className="text-muted-foreground" />
+          </Pressable>
+          
+          <View className="flex-row gap-2 mb-3">
+            <Button
+              size="sm"
+              variant="default"
+              onPress={handleProfilePress}
+              className="flex-1"
+            >
+              <Icon as={UserIcon} size={16} />
+              <Text className="ml-2">View Profile</Text>
+            </Button>
           </View>
           
           <View className="flex-row gap-2">
@@ -138,7 +215,7 @@ export function Sidebar({ isOpen, onClose, activeTab, onTabPress }: SidebarProps
             </View>
           </View>
         </View>
-      </View>
+      </Animated.View>
     </View>
   );
 }

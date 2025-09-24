@@ -63,7 +63,11 @@ export default function RootLayout() {
       <ThemeProvider value={NAV_THEME[colorScheme ?? 'light']}>
         <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
         <AuthGate>
-          <Stack />
+          <Stack 
+            screenOptions={{
+              headerShown: false,
+            }}
+          />
           <PortalHost />
         </AuthGate>
       </ThemeProvider>

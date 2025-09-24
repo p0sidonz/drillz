@@ -1,8 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
-
-const API_BASE = 'https://api.apps.introdx.com';
+import ApiService from './api';
 
 interface UserProfile {
   id: number;
@@ -24,6 +22,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   signup: (data: SignupData) => Promise<void>;
   fetchUserProfile: () => Promise<void>;
+  updateToken: (newToken: string) => Promise<void>;
 }
 
 interface SignupData {
@@ -69,13 +68,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchUserProfileWithToken = async (jwt: string) => {
     try {
-      const res = await axios.get(`${API_BASE}/accounts/users/whoami/`, {
-        headers: {
-          Authorization: `Bearer ${jwt}`,
-        },
-      });
+      const res = await ApiService.getCurrentUser();
+      console.log('User profile data from whoami:', res.data);
       setUser(res.data);
     } catch (e) {
+      console.error('Error fetching user profile:', e);
       setUser(null);
       setError('Could not fetch user profile.');
     }
@@ -86,17 +83,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setError(null);
     try {
       console.log('Login called with:', { username, password });
-      console.log('Making POST request to:', `${API_BASE}/accounts/login`);
       
-      const formData = new FormData();
-      formData.append('username', username);
-      formData.append('password', password);
-      
-      const res = await axios.post(`${API_BASE}/accounts/login/`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      const res = await ApiService.login(username, password);
       console.log('Login success response:', res.data);
       const jwt = res.data.key;
       await AsyncStorage.setItem('authToken', jwt);
@@ -137,7 +125,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await axios.post(`${API_BASE}/accounts/register/`, data);
+      const res = await ApiService.register(data);
       // Registration success, show verify email message
     } catch (e: any) {
       if (e.response) {
@@ -160,9 +148,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const updateToken = async (newToken: string) => {
+    try {
+      // Store new token
+      await AsyncStorage.setItem('authToken', newToken);
+      setToken(newToken);
+      
+      // Fetch user profile with new token
+      await fetchUserProfileWithToken(newToken);
+      
+      console.log('Token updated successfully');
+    } catch (error) {
+      console.error('Error updating token:', error);
+      setError('Failed to update authentication token');
+    }
+  };
+
   return (
     <AuthContext.Provider
-      value={{ user, token, isLoading, error, login, logout, signup, fetchUserProfile }}
+      value={{ user, token, isLoading, error, login, logout, signup, fetchUserProfile, updateToken }}
     >
       {children}
     </AuthContext.Provider>

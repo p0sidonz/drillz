@@ -87,15 +87,54 @@ export default function TabLayout() {
       </View> */}
 
       {/* Content Area */}
-      <View className="flex-1">
+      <View className="flex-1 bg-background pt-4">
         <Stack
           screenOptions={{
             headerShown: false,
           }}
         >
-          <Stack.Screen name="index" />
-          <Stack.Screen name="create" />
-          <Stack.Screen name="notifications" />
+          <Stack.Screen 
+            name="index" 
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen 
+            name="create" 
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen 
+            name="notifications" 
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen 
+            name="settings" 
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen 
+            name="edit-profile" 
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen 
+            name="follow-list" 
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen 
+            name="user/[username]" 
+            options={{
+              headerShown: false,
+            }}
+          />
         </Stack>
       </View>
 
