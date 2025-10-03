@@ -82,23 +82,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     setError(null);
     try {
-      console.log('Login called with:', { username, password });
-      
       const res = await ApiService.login(username, password);
-      console.log('Login success response:', res.data);
       const jwt = res.data.key;
       await AsyncStorage.setItem('authToken', jwt);
       setToken(jwt);
       await fetchUserProfileWithToken(jwt);
     } catch (e: any) {
-      console.log('Login error:', e);
       if (e.response) {
-        console.log('Login error response:', e.response.data);
-        console.log('Response status:', e.response.status);
-        console.log('Response headers:', e.response.headers);
         setError(e.response.data?.non_field_errors?.[0] || e.response.data?.detail || 'Login failed');
       } else {
-        console.log('Network or other error:', e.message);
         setError(e.message || 'Login error');
       }
       setUser(null);

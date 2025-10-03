@@ -26,7 +26,7 @@ export default function SignInScreen() {
       await login(username, password);
     } catch (error) {
       // Error is already handled in the auth context
-      console.error('Login error:', error);
+      console.error('Login error in component:', error);
     }
   };
 

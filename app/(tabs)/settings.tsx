@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
-import { View, ScrollView, Alert } from 'react-native';
+import { View, ScrollView, Alert, Platform, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
-import { ArrowLeftIcon, LockIcon, EyeIcon, EyeOffIcon, UserIcon, EditIcon, MailIcon } from 'lucide-react-native';
+import { ArrowLeftIcon, LockIcon, EyeIcon, EyeOffIcon, UserIcon, EditIcon, MailIcon, LogInIcon, UserPlusIcon, LogOutIcon } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import ApiService from '@/lib/api';
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { user, updateToken } = useAuth();
+  const { user, updateToken, login, signup, logout, isLoading, error, fetchUserProfile } = useAuth();
   const [loading, setLoading] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -29,6 +29,25 @@ export default function SettingsScreen() {
     newEmail: '',
   });
 
+  // Login form state
+  const [loginData, setLoginData] = useState({
+    username: '',
+    password: '',
+  });
+
+  // Signup form state
+  const [signupData, setSignupData] = useState({
+    username: '',
+    first_name: '',
+    last_name: '',
+    email: '',
+    password: '',
+    confirm_password: '',
+  });
+
+  const [localError, setLocalError] = useState<string | null>(null);
+  const [signupSuccess, setSignupSuccess] = useState(false);
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
@@ -38,6 +57,20 @@ export default function SettingsScreen() {
 
   const handleEmailInputChange = (field: string, value: string) => {
     setEmailFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleLoginInputChange = (field: string, value: string) => {
+    setLoginData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSignupInputChange = (field: string, value: string) => {
+    setSignupData(prev => ({
       ...prev,
       [field]: value
     }));
@@ -86,6 +119,72 @@ export default function SettingsScreen() {
       return false;
     }
     return true;
+  };
+
+  const validateEmail = (email: string) => {
+    return /\S+@\S+\.\S+/.test(email);
+  };
+
+  const handleLogin = async () => {
+    setLocalError(null);
+    if (!loginData.username || !loginData.password) {
+      setLocalError('Username and password are required');
+      return;
+    }
+    try {
+      await login(loginData.username, loginData.password);
+      // Reset form on success
+      setLoginData({ username: '', password: '' });
+    } catch (error) {
+      console.error('Login error in component:', error);
+    }
+  };
+
+  const handleSignup = async () => {
+    setLocalError(null);
+    setSignupSuccess(false);
+    if (!signupData.username || !signupData.first_name || !signupData.last_name || !signupData.email || !signupData.password || !signupData.confirm_password) {
+      setLocalError('All fields are required');
+      return;
+    }
+    if (!validateEmail(signupData.email)) {
+      setLocalError('Invalid email format');
+      return;
+    }
+    if (signupData.password.length < 6) {
+      setLocalError('Password must be at least 6 characters');
+      return;
+    }
+    if (signupData.password !== signupData.confirm_password) {
+      setLocalError('Passwords do not match');
+      return;
+    }
+    try {
+      await signup(signupData);
+      if (!error) {
+        setSignupSuccess(true);
+        setSignupData({
+          username: '',
+          first_name: '',
+          last_name: '',
+          email: '',
+          password: '',
+          confirm_password: '',
+        });
+      }
+    } catch (error) {
+      console.error('Signup error in component:', error);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      Alert.alert('Success', 'Logged out successfully');
+    } catch (error) {
+      console.error('Logout error:', error);
+      Alert.alert('Error', 'Failed to logout');
+    }
   };
 
   const handleChangePassword = async () => {
@@ -202,24 +301,197 @@ export default function SettingsScreen() {
   };
 
   return (
-    <View className="flex-1 bg-background">
-      {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-3 border-b border-border bg-background">
-        <Button
-          size="sm"
-          variant="ghost"
-          onPress={() => router.back()}
-          className="h-8 w-8 p-0"
-        >
-          <Icon as={ArrowLeftIcon} size={20} />
-        </Button>
-        <Text className="text-lg font-semibold text-foreground">Settings</Text>
-        <View className="w-8" />
-      </View>
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+      style={{ flex: 1 }}
+      className="bg-background"
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View className="flex-1 bg-background">
+          {/* Header */}
+          <View className="flex-row items-center justify-between px-4 py-3 border-b border-border bg-background">
+            <Button
+              size="sm"
+              variant="ghost"
+              onPress={() => router.back()}
+              className="h-8 w-8 p-0"
+            >
+              <Icon as={ArrowLeftIcon} size={20} />
+            </Button>
+            <Text className="text-lg font-semibold text-foreground">Settings</Text>
+            <View className="w-8" />
+          </View>
 
-      <ScrollView className="flex-1 px-4 py-4">
-        {/* User Info */}
-        <Card className="mb-6">
+          <ScrollView 
+            className="flex-1 px-4 py-4"
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+        {/* Authentication Section */}
+        {!user ? (
+          <>
+            {/* Login Card */}
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="text-base flex-row items-center">
+                  <Icon as={LogInIcon} size={16} className="mr-2" />
+                  Login
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <View>
+                  <Text className="text-sm font-medium mb-2">Username</Text>
+                  <Input
+                    placeholder="Enter username"
+                    value={loginData.username}
+                    onChangeText={(value) => handleLoginInputChange('username', value)}
+                    autoCapitalize="none"
+                    className="w-full"
+                  />
+                </View>
+                <View>
+                  <Text className="text-sm font-medium mb-2">Password</Text>
+                  <Input
+                    placeholder="Enter password"
+                    value={loginData.password}
+                    onChangeText={(value) => handleLoginInputChange('password', value)}
+                    secureTextEntry
+                    className="w-full"
+                  />
+                </View>
+                {(localError || error) && (
+                  <Text className="text-red-500 text-sm">{localError || error}</Text>
+                )}
+                <Button
+                  size="sm"
+                  variant="default"
+                  onPress={handleLogin}
+                  disabled={isLoading}
+                  className="w-full mt-2"
+                >
+                  <Text>
+                    {isLoading ? 'Logging in...' : 'Login'}
+                  </Text>
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Signup Card */}
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="text-base flex-row items-center">
+                  <Icon as={UserPlusIcon} size={16} className="mr-2" />
+                  Create Account
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <View>
+                  <Text className="text-sm font-medium mb-2">Username</Text>
+                  <Input
+                    placeholder="Enter username"
+                    value={signupData.username}
+                    onChangeText={(value) => handleSignupInputChange('username', value)}
+                    autoCapitalize="none"
+                    className="w-full"
+                  />
+                </View>
+                <View className="flex-row space-x-2">
+                  <View className="flex-1">
+                    <Text className="text-sm font-medium mb-2">First Name</Text>
+                    <Input
+                      placeholder="First name"
+                      value={signupData.first_name}
+                      onChangeText={(value) => handleSignupInputChange('first_name', value)}
+                      className="w-full"
+                    />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-sm font-medium mb-2">Last Name</Text>
+                    <Input
+                      placeholder="Last name"
+                      value={signupData.last_name}
+                      onChangeText={(value) => handleSignupInputChange('last_name', value)}
+                      className="w-full"
+                    />
+                  </View>
+                </View>
+                <View>
+                  <Text className="text-sm font-medium mb-2">Email</Text>
+                  <Input
+                    placeholder="Enter email address"
+                    value={signupData.email}
+                    onChangeText={(value) => handleSignupInputChange('email', value)}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    className="w-full"
+                  />
+                </View>
+                <View>
+                  <Text className="text-sm font-medium mb-2">Password</Text>
+                  <Input
+                    placeholder="Enter password"
+                    value={signupData.password}
+                    onChangeText={(value) => handleSignupInputChange('password', value)}
+                    secureTextEntry
+                    className="w-full"
+                  />
+                </View>
+                <View>
+                  <Text className="text-sm font-medium mb-2">Confirm Password</Text>
+                  <Input
+                    placeholder="Confirm password"
+                    value={signupData.confirm_password}
+                    onChangeText={(value) => handleSignupInputChange('confirm_password', value)}
+                    secureTextEntry
+                    className="w-full"
+                  />
+                </View>
+                {(localError || error) && (
+                  <Text className="text-red-500 text-sm">{localError || error}</Text>
+                )}
+                {signupSuccess && (
+                  <Text className="text-green-600 text-sm">Please verify your email and then login.</Text>
+                )}
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onPress={handleSignup}
+                  disabled={isLoading}
+                  className="w-full mt-2"
+                >
+                  <Text>
+                    {isLoading ? 'Creating Account...' : 'Create Account'}
+                  </Text>
+                </Button>
+              </CardContent>
+            </Card>
+          </>
+        ) : (
+          /* Logout Button for authenticated users */
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="text-base flex-row items-center">
+                <Icon as={LogOutIcon} size={16} className="mr-2" />
+                Account Actions
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Button
+                size="sm"
+                variant="destructive"
+                onPress={handleLogout}
+                className="w-full"
+              >
+                <Icon as={LogOutIcon} size={16} className="mr-2" />
+                <Text>Logout</Text>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* User Info - Only show if user is logged in */}
+        {user && (
+          <Card className="mb-6">
           <CardHeader>
             <CardTitle className="text-base flex-row items-center justify-between">
               <View className="flex-row items-center">
@@ -260,9 +532,11 @@ export default function SettingsScreen() {
             </View>
           </CardContent>
         </Card>
+        )}
 
-        {/* Change Password */}
-        <Card className="mb-6">
+        {/* Change Password - Only show if user is logged in */}
+        {user && (
+          <Card className="mb-6">
           <CardHeader>
             <CardTitle className="text-base flex-row items-center">
               <Icon as={LockIcon} size={16} className="mr-2" />
@@ -391,9 +665,11 @@ export default function SettingsScreen() {
             </Button>
           </CardContent>
         </Card>
+        )}
 
-        {/* Change Email */}
-        <Card className="mb-6">
+        {/* Change Email - Only show if user is logged in */}
+        {user && (
+          <Card className="mb-6">
           <CardHeader>
             <CardTitle className="text-base flex-row items-center">
               <Icon as={MailIcon} size={16} className="mr-2" />
@@ -403,6 +679,7 @@ export default function SettingsScreen() {
           <CardContent className="space-y-4">
             {/* Current Password */}
             <View>
+            
               <Text className="text-sm font-medium mb-2">Current Password</Text>
               <View className="relative">
                 <Input
@@ -454,9 +731,12 @@ export default function SettingsScreen() {
             </Button>
           </CardContent>
         </Card>
+        )}
 
        
-      </ScrollView>
-    </View>
+          </ScrollView>
+        </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }

@@ -3,7 +3,7 @@ import { View, Pressable } from 'react-native';
 import { cn } from '@/lib/utils';
 import { Text } from './text';
 import { Icon } from './icon';
-import { HomeIcon, PlusIcon, BellIcon } from 'lucide-react-native';
+import { HomeIcon, PlusIcon, BellIcon, MessageCircleIcon } from 'lucide-react-native';
 
 interface TabItem {
   key: string;
@@ -30,6 +30,12 @@ const tabs: TabItem[] = [
     title: 'Create',
     icon: PlusIcon,
     href: '/(tabs)/create',
+  },
+  {
+    key: 'chat',
+    title: 'Chat',
+    icon: MessageCircleIcon,
+    href: '/(tabs)/chat',
   },
   {
     key: 'notifications',

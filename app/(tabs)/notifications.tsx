@@ -166,14 +166,14 @@ export default function NotificationsScreen() {
                               <Icon as={CheckIcon} size={12} />
                             </Button>
                           )}
-                          <Button
+                          {/* <Button
                             size="sm"
                             variant="ghost"
                             onPress={() => deleteNotification(notification.id)}
                             className="h-6 px-2"
                           >
                             <Icon as={TrashIcon} size={12} />
-                          </Button>
+                          </Button> */}
                         </View>
                       </View>
                     </View>

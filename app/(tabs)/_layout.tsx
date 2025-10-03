@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, SafeAreaView } from 'react-native';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, useRouter, useSegments, useRootNavigationState } from 'expo-router';
 import { BottomTabs } from '@/components/ui/bottom-tabs';
 import { Text } from '@/components/ui/text';
 import { Button } from '@/components/ui/button';
@@ -13,22 +13,33 @@ export default function TabLayout() {
   const [activeTab, setActiveTab] = useState('home');
   const router = useRouter();
   const segments = useSegments();
+  const navigationState = useRootNavigationState();
   const { colorScheme, toggleColorScheme } = useColorScheme();
   const { user, logout } = useAuth();
 
   // Update active tab based on current route
   React.useEffect(() => {
+    if (!navigationState?.key) return; // Wait for navigation to be ready
+    
     const currentSegment = segments[segments.length - 1];
-    if (currentSegment === 'index' || currentSegment === '(tabs)') {
+    if (currentSegment === '(tabs)') {
       setActiveTab('home');
     } else if (currentSegment === 'create') {
       setActiveTab('create');
     } else if (currentSegment === 'notifications') {
       setActiveTab('notifications');
+    } else if (currentSegment === 'chat') {
+      setActiveTab('chat');
     }
-  }, [segments]);
+  }, [segments, navigationState?.key]);
+
+  // Check if we're in chat or create to hide bottom tabs
+  const isInChat = segments.some(segment => segment === 'chat');
+  const isInCreate = segments.some(segment => segment === 'create');
 
   const handleTabPress = (tabKey: string) => {
+    if (!navigationState?.key) return; // Wait for navigation to be ready
+    
     setActiveTab(tabKey);
     switch (tabKey) {
       case 'home':
@@ -39,6 +50,9 @@ export default function TabLayout() {
         break;
       case 'notifications':
         router.push('/(tabs)/notifications');
+        break;
+      case 'chat':
+        router.push('/(tabs)/chat');
         break;
     }
   };
@@ -51,6 +65,8 @@ export default function TabLayout() {
         return 'Create Drill';
       case 'notifications':
         return 'Notifications';
+      case 'chat':
+        return 'Messages';
       default:
         return 'Drillz';
     }
@@ -135,14 +151,22 @@ export default function TabLayout() {
               headerShown: false,
             }}
           />
+          <Stack.Screen 
+            name="chat" 
+            options={{
+              headerShown: false,
+            }}
+          />
         </Stack>
       </View>
 
-      {/* Custom Bottom Tabs */}
-      <BottomTabs
-        activeTab={activeTab}
-        onTabPress={handleTabPress}
-      />
+      {/* Custom Bottom Tabs - Hidden in chat and create */}
+      {!isInChat && !isInCreate && (
+        <BottomTabs
+          activeTab={activeTab}
+          onTabPress={handleTabPress}
+        />
+      )}
     </SafeAreaView>
   );
 }

@@ -9,6 +9,8 @@ import { useColorScheme } from 'nativewind';
 import { AuthProvider, useAuth } from '../lib/auth';
 import { useSegments, useRouter, useRootNavigationState } from 'expo-router';
 import React, { useEffect } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
 import { View, Text } from 'react-native';
 
 export {
@@ -22,10 +24,18 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   const segments = useSegments();
   const router = useRouter();
   const navigationState = useRootNavigationState();
+  const [isNavigationReady, setIsNavigationReady] = React.useState(false);
+
+  useEffect(() => {
+    // Wait for navigation to be fully ready
+    if (navigationState?.key) {
+      setIsNavigationReady(true);
+    }
+  }, [navigationState?.key]);
 
   useEffect(() => {
     // Wait for navigation to be ready and auth to finish loading
-    if (isLoading || !navigationState?.key) return;
+    if (isLoading || !isNavigationReady) return;
     
     // Add a small delay to ensure navigation is fully ready
     const timer = setTimeout(() => {
@@ -42,13 +52,13 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     }, 100);
 
     return () => clearTimeout(timer);
-  }, [user, segments, navigationState?.key, isLoading]);
+  }, [user, segments, isNavigationReady, isLoading]);
 
   // Show loading screen while auth is loading or navigation isn't ready
-  if (isLoading || !navigationState?.key) {
+  if (isLoading || !isNavigationReady) {
     return (
       <View className="flex-1 items-center justify-center bg-background">
-        <Text>Loading...</Text>
+        <Text className="text-foreground">Loading...</Text>
       </View>
     );
   }
@@ -62,6 +72,8 @@ export default function RootLayout() {
     <AuthProvider>
       <ThemeProvider value={NAV_THEME[colorScheme ?? 'light']}>
         <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+        <GestureHandlerRootView
+        style={{ flex: 1, backgroundColor: NAV_THEME[colorScheme ?? 'light'].colors.background }}>
         <AuthGate>
           <Stack 
             screenOptions={{
@@ -70,6 +82,7 @@ export default function RootLayout() {
           />
           <PortalHost />
         </AuthGate>
+        </GestureHandlerRootView>
       </ThemeProvider>
     </AuthProvider>
   );
